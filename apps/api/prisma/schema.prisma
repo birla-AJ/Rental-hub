@@ -1,0 +1,321 @@
+// RentalHub database schema (PostgreSQL). Business rules live in packages/core; this stores their results.
+// Money = whole rupees (Int) to match the core engine. If paise/GST precision is needed later, migrate to paise.
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TENANT
+  OWNER
+  AGENT
+  ADMIN
+}
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+enum PropertyStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  VERIFICATION_IN_PROGRESS
+  VERIFIED
+  REJECTED
+  OCCUPIED
+  VACANT
+  PLACEMENT_IN_PROGRESS
+  PLACED
+  INACTIVE
+}
+enum AgentTask {
+  PENDING
+  VERIFIED
+  REJECTED
+  REVISIT
+}
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CHECKOUT_REQUESTED
+  VERIFICATION_PENDING
+  VACANT
+  PLACEMENT_IN_PROGRESS
+  BOOKED
+  RESERVED
+}
+enum TokenState {
+  LOCKED
+  DORMANT
+  ELIGIBLE
+  REDEEMED
+  CANCELLED
+  UNDER_REVIEW
+}
+enum CheckoutState {
+  INITIATED
+  QR_SCANNED
+  AWAITING_PARTIES
+  VERIFIED
+  DISPUTED
+  MANUAL_REVIEW
+}
+enum CommissionStatus {
+  DUE
+  PAID
+  WAIVED
+}
+enum BookingStatus {
+  REQUESTED
+  PENDING
+  CONFIRMED
+  MOVED_IN
+  REJECTED
+  CANCELLED
+}
+enum QrStatus {
+  ACTIVE
+  REVOKED
+}
+
+model City {
+  id         String     @id @default(cuid())
+  name       String     @unique            // "Indore" first; more cities later without redesign
+  active     Boolean    @default(false)
+  users      User[]
+  properties Property[]
+}
+
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  name        String?
+  roles       Role[]                       // agent/admin are provisioned by staff, never self-assigned
+  kycStatus   KycStatus @default(NOT_STARTED)
+  cityId      String?
+  city        City?    @relation(fields: [cityId], references: [id])
+  createdAt   DateTime @default(now())
+
+  kycRecords      KycRecord[]
+  registeredProps Property[]  @relation("PropertyRegisteredBy")
+  ownedProps      Property[]  @relation("PropertyOwner")
+  agentProps      Property[]  @relation("PropertyAgent")
+  tenancies       Tenancy[]
+  tokens          CashbackToken[]
+  bookings        Booking[]
+  commissions     Commission[]
+  checkoutsAsTenant Checkout[] @relation("CheckoutTenant")
+  checkoutsAsOwner  Checkout[] @relation("CheckoutOwner")
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+  rooms           Room[]       @relation("RoomOwner")
+}
+
+// KYC history is kept (never overwritten): it travels with the tenant across cities.
+model KycRecord {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  idType     String                          // Aadhaar / PAN / Driving licence / Voter ID — NOT the ID number
+  status     KycStatus
+  verifiedBy String?                         // agent user id
+  note       String?
+  createdAt  DateTime  @default(now())
+  @@index([userId])
+}
+
+model Property {
+  id            String         @id @default(cuid())
+  name          String
+  address       String
+  locality      String
+  cityId        String
+  city          City           @relation(fields: [cityId], references: [id])
+  status        PropertyStatus @default(PENDING_VERIFICATION)
+  agentTask     AgentTask      @default(PENDING)
+  registeredById String                       // the tenant who registered it
+  registeredBy  User           @relation("PropertyRegisteredBy", fields: [registeredById], references: [id])
+  ownerId       String?                       // owner is approached AFTER registration
+  owner         User?          @relation("PropertyOwner", fields: [ownerId], references: [id])
+  ownerName     String
+  ownerPhone    String
+  ownerConsentAt DateTime?                    // soft consent timestamp
+  agentId       String?
+  agent         User?          @relation("PropertyAgent", fields: [agentId], references: [id])
+  visitAt       DateTime?
+  geoLat        Float?                        // whole-property geo-tag set by agent
+  geoLng        Float?
+  geoAccuracyM  Int?
+  verifiedAt    DateTime?
+  agentNote     String?
+  createdAt     DateTime       @default(now())
+  rooms         Room[]
+  tokens        CashbackToken[]
+  @@index([cityId, status])
+  @@index([agentId, agentTask])
+}
+
+model Room {
+  id          String     @id @default(cuid())
+  propertyId  String
+  property    Property   @relation(fields: [propertyId], references: [id])
+  name        String
+  roomType    String?
+  rent        Int                              // monthly rent, ₹
+  status      RoomStatus @default(AVAILABLE)
+  ownerId     String?
+  owner       User?      @relation("RoomOwner", fields: [ownerId], references: [id])
+  qr          QrTag?
+  tenancies   Tenancy[]
+  checkouts   Checkout[]
+  windows     VacancyWindow[]
+  commissions Commission[]
+  tokens      CashbackToken[]
+  bookings    Booking[]
+  @@index([propertyId, status])
+}
+
+model QrTag {
+  id         String    @id @default(cuid())
+  roomId     String    @unique
+  room       Room      @relation(fields: [roomId], references: [id])
+  code       String    @unique                 // rentalhub://room/<roomId>
+  status     QrStatus  @default(ACTIVE)
+  assignedAt DateTime  @default(now())
+}
+
+model Tenancy {
+  id        String    @id @default(cuid())
+  roomId    String
+  room      Room      @relation(fields: [roomId], references: [id])
+  tenantId  String
+  tenant    User      @relation(fields: [tenantId], references: [id])
+  startedAt DateTime
+  endedAt   DateTime?
+  @@index([tenantId])
+  @@index([roomId])
+}
+
+// Deferred cashback token. `inactivityTrackedFrom` is INTERNAL — never returned to tenant clients.
+model CashbackToken {
+  id          String     @id @default(cuid())
+  tenantId    String
+  tenant      User       @relation(fields: [tenantId], references: [id])
+  propertyId  String
+  property    Property   @relation(fields: [propertyId], references: [id])
+  roomId      String
+  room        Room       @relation(fields: [roomId], references: [id])
+  amount      Int
+  state       TokenState @default(DORMANT)
+  eligibleAt  DateTime?
+  redeemedAt  DateTime?
+  inactivityTrackedFrom DateTime @default(now())
+  createdAt   DateTime   @default(now())
+  txns        CashbackTxn[]
+  @@index([tenantId, state])
+}
+
+model CashbackTxn {
+  id            String   @id @default(cuid())
+  tokenId       String
+  token         CashbackToken @relation(fields: [tokenId], references: [id])
+  bookingNumber Int                              // 2 => 30%, 3 => 10%, 4+ => 7%
+  credit        Int
+  createdAt     DateTime @default(now())
+}
+
+model Checkout {
+  id         String        @id @default(cuid())
+  roomId     String
+  room       Room          @relation(fields: [roomId], references: [id])
+  tenantId   String
+  tenant     User          @relation("CheckoutTenant", fields: [tenantId], references: [id])
+  ownerId    String
+  owner      User          @relation("CheckoutOwner", fields: [ownerId], references: [id])
+  state      CheckoutState @default(INITIATED)
+  qrScannedAt DateTime?                          // mandatory trigger
+  tenantDate DateTime?
+  ownerDate  DateTime?
+  ownerConfirmed Boolean?
+  verifiedAt DateTime?
+  createdAt  DateTime      @default(now())
+  events     CheckoutEvent[]
+  @@index([roomId, state])
+}
+
+model CheckoutEvent {                              // AI verification trail, shown in admin "AI logs"
+  id         String   @id @default(cuid())
+  checkoutId String
+  checkout   Checkout @relation(fields: [checkoutId], references: [id])
+  event      String                              // QR_SCANNED, TENANT_CONFIRMED, OWNER_CONFIRMED, VERIFIED, DISPUTED...
+  channel    String?                             // app / whatsapp / system
+  detail     String?
+  at         DateTime @default(now())
+  @@index([checkoutId])
+}
+
+model VacancyWindow {                              // 7-day placement window
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+  startedAt DateTime
+  endsAt    DateTime
+  closedAt  DateTime?
+  @@index([roomId])
+}
+
+model Commission {                                 // 20% of one month's rent if placed <= 7 days, else WAIVED (₹0)
+  id          String           @id @default(cuid())
+  roomId      String
+  room        Room             @relation(fields: [roomId], references: [id])
+  ownerId     String
+  owner       User             @relation(fields: [ownerId], references: [id])
+  status      CommissionStatus
+  amount      Int              @default(0)
+  waivedValue Int              @default(0)          // display only — never paid out to the owner
+  paidAt      DateTime?
+  createdAt   DateTime         @default(now())
+  @@index([ownerId, status])
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  roomId     String
+  room       Room          @relation(fields: [roomId], references: [id])
+  tenantId   String
+  tenant     User          @relation(fields: [tenantId], references: [id])
+  status     BookingStatus @default(REQUESTED)
+  moveInDate DateTime
+  months     Int
+  bookingNumber Int                                // tenant's Nth booking (drives cashback ladder)
+  cashbackApplied Int      @default(0)
+  createdAt  DateTime      @default(now())
+  @@index([tenantId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, readAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  role      Role?
+  action    String
+  entity    String?
+  entityId  String?
+  at        DateTime @default(now())
+  @@index([at])
+}

@@ -1,0 +1,15 @@
+import { H } from './test-helpers.mjs';
+import { server } from './src/server.js';
+await new Promise(r => server.listen(4101, r));
+const call = async (m, p, role, body) => (await fetch('http://localhost:4101'+p, { method:m, headers:{...H(role),'content-type':'application/json'}, body: body && JSON.stringify(body) })).json();
+await call('POST','/checkout/r1/start','tenant'); await call('POST','/checkout/r1/scan','tenant',{qr:'r1'});
+await call('POST','/checkout/r1/tenant-confirm','tenant',{checkoutDate:'2026-10-05'});
+let d = await call('GET','/owner/dashboard','owner'); console.log('awaitingOwner:', d.rooms[0].awaitingOwner, '| tenant date:', d.rooms[0].tenantCheckoutDate);
+console.log('tenant blocked from owner dash:', (await call('GET','/owner/dashboard','tenant')).error);
+await call('POST','/checkout/r1/owner-respond','owner',{confirmed:true, checkoutDate:'2026-10-05'});
+d = await call('GET','/owner/dashboard','owner'); console.log('spine:', JSON.stringify(d.spine), 'potential:', d.commission.potential);
+await call('POST','/placement/place','admin',{roomId:'r1', placedAt:new Date(Date.now()+2*864e5).toISOString()});
+d = await call('GET','/owner/dashboard','owner'); console.log('due:', d.commission.due);
+console.log('pay:', (await call('POST','/commission/pay','owner',{id:d.ledger[0].id})).status);
+d = await call('GET','/owner/dashboard','owner'); console.log('paid:', d.commission.paid, 'due:', d.commission.due);
+server.close();

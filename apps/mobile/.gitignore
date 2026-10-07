@@ -1,0 +1,9 @@
+node_modules/
+build/
+.gradle/
+Pods/
+*.keystore
+!debug.keystore
+local.properties
+.idea/
+ios/*.xcworkspace/xcuserdata

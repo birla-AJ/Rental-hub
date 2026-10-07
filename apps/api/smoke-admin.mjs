@@ -1,0 +1,12 @@
+import { H } from './test-helpers.mjs';
+import { server } from './src/server.js';
+await new Promise(r => server.listen(4103, r));
+const call = async (m, p, role, body) => { const r = await fetch('http://localhost:4103'+p, { method:m, headers:{...H(role),'content-type':'application/json'}, body: body && JSON.stringify(body) }); return { status: r.status, ...(await r.json()) }; };
+console.log('non-admin     :', (await call('GET','/admin/overview','owner')).status);
+await call('POST','/checkout/r1/start','tenant'); await call('POST','/checkout/r1/scan','tenant',{qr:'r1'}); await call('POST','/checkout/r1/tenant-confirm','tenant',{checkoutDate:'2026-10-05'});
+await call('POST','/checkout/r1/owner-respond','owner',{confirmed:true, checkoutDate:'2026-10-05'});
+await call('POST','/placement/place','admin',{roomId:'r1', placedAt:new Date(Date.now()+10*864e5).toISOString()});
+const o = await call('GET','/admin/overview','admin'); console.log('kpis          :', JSON.stringify(o.kpis));
+for (const t of ['properties','rooms','users','vacancy','commissions','cashback','qr','ai-logs','audit']) console.log(t.padEnd(14), ':', (await call('GET','/admin/'+t,'admin')).rows.length, 'rows');
+console.log('audit sample  :', JSON.stringify((await call('GET','/admin/audit','admin')).rows[0]));
+server.close();

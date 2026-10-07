@@ -1,0 +1,19 @@
+# {$DOMAIN} comes from the environment, e.g. app.rentalhub.in — point its DNS A record at your server first.
+{$DOMAIN} {
+	encode gzip
+
+	# API: https://DOMAIN/api/...  (the "/api" prefix is removed before it reaches the API)
+	handle_path /api/* {
+		request_body {
+			max_size 45MB
+		}
+		reverse_proxy api:4000
+	}
+
+	# Web app (single-page: unknown paths fall back to index.html)
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

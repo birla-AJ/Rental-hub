@@ -1,0 +1,13 @@
+{
+  "name": "@rentalhub/api",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/server.js",
+  "optionalDependencies": {
+    "pg": "^8.11.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "check:env": "node -e \"import('./src/hardening.js').then(({validateEnv})=>{const r=validateEnv();r.warnings.forEach(w=>console.log('warning:',w));if(r.errors.length){r.errors.forEach(e=>console.log('ERROR:',e));process.exit(1)}console.log('Environment looks good.')})\""
+  }
+}

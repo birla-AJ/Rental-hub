@@ -1,0 +1,16 @@
+import { H } from './test-helpers.mjs';
+import { server } from './src/server.js';
+await new Promise(r => server.listen(4102, r));
+const call = async (m, p, role, body) => { const r = await fetch('http://localhost:4102'+p, { method:m, headers:{...H(role),'content-type':'application/json'}, body: body && JSON.stringify(body) }); return { status: r.status, ...(await r.json()) }; };
+console.log('counts      :', JSON.stringify((await call('GET','/agent/dashboard','agent')).counts));
+console.log('tenant role :', (await call('GET','/agent/dashboard','tenant')).status);
+const full = { photosMatch:1, roomsCounted:1, ownerContactCaptured:1, tenantKycVerified:1, geoTagged:1, qrApplied:1 };
+let r = await call('POST','/properties/p2/verify','agent',{ checklist: full, geo:{lat:22.7196,lng:75.8577} });
+console.log('no QR yet   :', r.status, r.error);
+const q = await call('POST','/properties/p2/qr','agent'); console.log('QR tags     :', q.tags.length, q.tags[0].code);
+r = await call('POST','/properties/p2/verify','agent',{ checklist: { ...full, geoTagged:0 }, geo:{lat:22.7196,lng:75.8577} }); console.log('bad checklist:', r.status);
+r = await call('POST','/properties/p2/verify','agent',{ checklist: full, geo:{lat:22.7196,lng:75.8577} });
+console.log('verified    :', r.status, r.property.status, '| token', r.token.amount, r.token.state, '| internal hidden:', !('internal' in r.token));
+console.log('revisit w/o reason:', (await call('POST','/properties/p3/revisit','agent',{})).status);
+console.log('after       :', JSON.stringify((await call('GET','/agent/dashboard','agent')).counts));
+server.close();

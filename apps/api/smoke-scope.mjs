@@ -1,0 +1,11 @@
+import { H } from './test-helpers.mjs';
+import { server } from './src/server.js';
+await new Promise(r => server.listen(4104, r));
+const call = async (p, role) => { const r = await fetch('http://localhost:4104'+p, { headers:H(role) }); return { status: r.status, ...(await r.json()) }; };
+console.log('agent  properties:', (await call('/me/properties','agent')).rows.length, '(admin sees', (await call('/admin/properties','admin')).rows.length + ')');
+console.log('agent  rooms     :', (await call('/me/rooms','agent')).status);
+console.log('agent  cashback  :', (await call('/me/cashback','agent')).status);
+console.log('owner  rooms     :', (await call('/me/rooms','owner')).rows.map(r=>r.room).join(','), '(admin sees', (await call('/admin/rooms','admin')).rows.length + ' rooms)');
+console.log('owner  overview  :', (await call('/me/overview','owner')).status);
+console.log('owner on /admin  :', (await call('/admin/rooms','owner')).status);
+server.close();

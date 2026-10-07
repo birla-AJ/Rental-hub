@@ -1,0 +1,12 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm test                      # core rules, API, WhatsApp, persistence, hardening, mobile guard, CSV
+      - run: cd apps/mobile && npm run check
+      - run: cd apps/web && npm install && npm run build

@@ -1,0 +1,43 @@
+{
+  "name": "rentalhub-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RentalHub mobile app — React Native CLI (bare), plain JavaScript. Tenant / Agent / Owner in one app.",
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "native:add": "node scripts/add-native.js",
+    "sync:theme": "node scripts/sync-theme.js",
+    "check": "node scripts/check-imports.js && node scripts/sync-theme.js --check"
+  },
+  "dependencies": {
+    "@react-native-community/geolocation": "^3.4.0",
+    "@react-navigation/bottom-tabs": "^7.0.0",
+    "@react-navigation/native": "^7.0.0",
+    "@react-navigation/native-stack": "^7.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.5",
+    "react-native-image-picker": "^7.2.2",
+    "react-native-keychain": "^9.2.2",
+    "react-native-qrcode-svg": "^6.3.0",
+    "react-native-razorpay": "^2.3.0",
+    "react-native-safe-area-context": "^4.14.0",
+    "react-native-screens": "4.10.0",
+    "react-native-svg": "15.10.0",
+    "react-native-vision-camera": "^4.6.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "15.0.1",
+    "@react-native-community/cli-platform-android": "15.0.1",
+    "@react-native-community/cli-platform-ios": "15.0.1",
+    "@react-native/babel-preset": "0.76.5",
+    "@react-native/metro-config": "0.76.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
