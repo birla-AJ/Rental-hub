@@ -17,7 +17,7 @@ function walk(dir, out = []) {
 
 function check(base = root) {
   const pkg = JSON.parse(fs.readFileSync(path.join(base, 'package.json'), 'utf8'));
-  const declared = new Set([...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})]);
+  const declared = new Set([...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {}), ...Object.keys(pkg.optionalNative ?? {})]);   // optionalNative: installed only by the opt-in scripts
   const errors = [];
   const files = walk(base);
   for (const f of files) if (/\.(ts|tsx)$/.test(f) || /tsconfig/.test(path.basename(f))) errors.push(`TypeScript file not allowed: ${path.relative(base, f)}`);

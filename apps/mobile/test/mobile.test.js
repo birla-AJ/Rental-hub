@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const { check } = require('../scripts/check-imports');
 const { patchBuildGradle, patchManifest, patchPlist } = require('../scripts/add-native');
+const push = require('../scripts/enable-push');
 
 const root = path.resolve(__dirname, '..');
 
@@ -45,4 +46,21 @@ test('native patches: camera + location permissions, plist usage texts, minSdk 2
   assert.ok(p.trimEnd().endsWith('</dict>\n</plist>')); assert.equal(patchPlist(p), p);
   assert.equal(patchBuildGradle('ext {\n  minSdkVersion = 24\n}'), 'ext {\n  minSdkVersion = 26\n}');
   assert.equal(patchBuildGradle('minSdkVersion = 28'), 'minSdkVersion = 28');                         // never lowers it
+});
+
+test('push is off by default, Firebase is optional, and the app still bundles without it', () => {
+  assert.match(fs.readFileSync(path.join(root, 'src/config.js'), 'utf8'), /PUSH_ENABLED = false;/);
+  const p = require('../package.json'); assert.ok(p.optionalNative['@react-native-firebase/messaging']); assert.equal(p.dependencies['@react-native-firebase/messaging'], undefined);
+  assert.match(fs.readFileSync(path.join(root, 'metro.config.js'), 'utf8'), /allowOptionalDependencies: true/);
+  assert.match(fs.readFileSync(path.join(root, 'src/native/push.js'), 'utf8'), /try \{ messaging = require\('@react-native-firebase\/messaging'\)/);
+});
+test('push native patches are idempotent and put things where Firebase needs them', () => {
+  const proj = "buildscript {\n    ext { minSdkVersion = 26 }\n    dependencies {\n        classpath(\"com.android.tools.build:gradle\")\n    }\n}\n";
+  const a = push.patchProjectGradle(proj); assert.ok(a.includes("com.google.gms:google-services:4.4.2")); assert.equal(push.patchProjectGradle(a), a); assert.ok(a.indexOf('google-services') < a.indexOf('com.android.tools.build'));
+  const app = push.patchAppGradle('apply plugin: "com.android.application"\n'); assert.ok(app.trimEnd().endsWith('apply plugin: "com.google.gms.google-services"')); assert.equal(push.patchAppGradle(app), app);
+  const m = push.patchManifestPush(MANIFEST); assert.ok(m.includes('POST_NOTIFICATIONS') && m.indexOf('POST_NOTIFICATIONS') < m.indexOf('<application')); assert.equal(push.patchManifestPush(m), m);
+  const pod = "prepare_react_native_project!\n\ntarget 'RentalHub' do\nend\n"; const pp = push.patchPodfile(pod); assert.ok(pp.includes('$RNFirebaseAsStaticFramework = true') && pp.includes('use_frameworks! :linkage => :static')); assert.equal(push.patchPodfile(pp), pp);
+  const del = '#import "AppDelegate.h"\n\n@implementation AppDelegate\n\n- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions\n{\n  self.moduleName = @"RentalHub";\n  return YES;\n}\n@end\n';
+  const d = push.patchAppDelegate(del); assert.ok(d.includes('#import <Firebase.h>') && d.includes('[FIRApp configure];')); assert.ok(d.indexOf('[FIRApp configure]') < d.indexOf('self.moduleName')); assert.equal(push.patchAppDelegate(d), d);
+  assert.equal(push.setPushFlag('export const PUSH_ENABLED = false;'), 'export const PUSH_ENABLED = true;'); assert.equal(push.setPushFlag('export const PUSH_ENABLED = true;', false), 'export const PUSH_ENABLED = false;');
 });

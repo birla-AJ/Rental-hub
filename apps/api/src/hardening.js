@@ -50,6 +50,7 @@ export function validateEnv(env = process.env) {
   if (env.WHATSAPP_TOKEN && !env.WHATSAPP_VERIFY_TOKEN) errors.push('WHATSAPP_VERIFY_TOKEN is required for the WhatsApp webhook handshake.');
   if (env.SEED_DEMO === '1') warnings.push('SEED_DEMO=1 puts fake demo users and properties on a live server. Remove it.');
   if (!env.BOOTSTRAP_ADMIN_PHONE) warnings.push('BOOTSTRAP_ADMIN_PHONE is not set: fine if an admin already exists, but a brand-new database will refuse to start without it.');
+  if (!env.FCM_SERVICE_ACCOUNT_JSON) warnings.push('FCM_SERVICE_ACCOUNT_JSON is not set: push notifications are recorded but not sent (notifications still appear inside the app).');
   if (!env.WHATSAPP_TOKEN) warnings.push('WhatsApp is not configured: the AI assistant will record messages but send none.');
   if (!env.CORS_ORIGINS) warnings.push('CORS_ORIGINS is not set: browsers on other domains (e.g. a separately hosted admin site) will be blocked.');
   if (env.TRUST_PROXY !== '1') warnings.push('TRUST_PROXY is not 1: behind a reverse proxy every user will look like the same IP and share rate limits.');

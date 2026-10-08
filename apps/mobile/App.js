@@ -7,6 +7,10 @@ import RootNavigator, { navigationRef } from './src/navigation';
 import { t } from './src/theme';
 import Icon from './src/components/Icon';
 import Splash from './src/screens/Splash';
+import { setNotificationOpenHandler } from './src/native/push';
+
+// Tapping a push notification opens the Notifications screen (does nothing unless push has been enabled).
+setNotificationOpenHandler(() => { if (navigationRef.isReady()) navigationRef.navigate('Notifications'); });
 
 // Preserve the visual hierarchy across Android/iOS devices even when the OS font scale differs.
 Text.defaultProps = Text.defaultProps || {};

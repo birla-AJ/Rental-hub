@@ -9,7 +9,8 @@
     "ios": "react-native run-ios",
     "native:add": "node scripts/add-native.js",
     "sync:theme": "node scripts/sync-theme.js",
-    "check": "node scripts/check-imports.js && node scripts/sync-theme.js --check"
+    "check": "node scripts/check-imports.js && node scripts/sync-theme.js --check",
+    "push:enable": "node scripts/enable-push.js"
   },
   "dependencies": {
     "@react-native-community/geolocation": "^3.4.0",
@@ -39,5 +40,9 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "optionalNative": {
+    "@react-native-firebase/app": "^21.6.1",
+    "@react-native-firebase/messaging": "^21.6.1"
   }
 }

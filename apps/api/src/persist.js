@@ -10,7 +10,7 @@
 
 // collection name -> how it is held in `db`
 export const COLLECTIONS = {
-  properties: 'map', rooms: 'map', tokens: 'map', qr: 'map', windows: 'map', checkouts: 'map', bookings: 'map', kyc: 'map', saved: 'map', conversations: 'map', privateFiles: 'map',
+  properties: 'map', rooms: 'map', tokens: 'map', qr: 'map', windows: 'map', checkouts: 'map', bookings: 'map', kyc: 'map', saved: 'map', conversations: 'map', privateFiles: 'map', devices: 'map',
   users: 'list', commissions: 'list', tenancies: 'list',
   notifications: 'list-desc', audit: 'list-desc',   // newest first in memory
 };

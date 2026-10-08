@@ -206,9 +206,28 @@ signingConfigs { release { storeFile file(RENTALHUB_STORE_FILE); storePassword R
 | Anything else | Send me the exact error text (and which command you ran). |
 
 ---------------------------------------------------------------------
-## PART 7 — What is still not done
-1. **Not yet run on a real phone/emulator** — the mobile app is code-complete but untested on a device; expect small first-run fixes.
-2. **Not yet tried against the real services:** PostgreSQL, MSG91, Razorpay, WhatsApp, Docker/Caddy.
-3. Push notifications (notifications show inside the app only), Hindi language, app icons/polish, map view.
-4. Prisma/relational migration (needed only when you outgrow one server).
-5. Error monitoring (e.g. Sentry), automated phone tests, an external security review.
+## PART 7 — Push notifications (optional, do it after the app works)
+Notifications already appear inside the app. Push adds the phone's normal notification banner. The server side is built and tested; the phone side stays OFF until you do this once.
+
+1. **Firebase:** console.firebase.google.com → Add project → Add an **Android app** (package name `com.rentalhub`) and an **iOS app** (use the bundle id you will publish with — see the note below).
+   Download `google-services.json` → put it in `apps/mobile/android/app/` and `GoogleService-Info.plist` → `apps/mobile/ios/RentalHub/` (on iPhone add it in Xcode: drag in, tick *Copy items*).
+2. **Turn it on in the app:**
+```bash
+cd apps/mobile
+npm run push:enable        # installs the Firebase packages, patches Android/iOS settings, sets PUSH_ENABLED = true
+npm run android            # rebuild
+# iPhone: cd ios && bundle exec pod install && cd .. && npm run ios
+```
+   It lists anything it could not patch automatically. **iPhone extras:** Xcode → target RentalHub → Signing & Capabilities → add *Push Notifications* and *Background Modes → Remote notifications*; in Firebase → Project settings → Cloud Messaging upload your Apple **APNs key** (needs the paid Apple Developer account).
+3. **Server:** Firebase → Project settings → Service accounts → *Generate new private key* → a JSON file. Put it into the server setting as one line:
+```bash
+base64 -i firebase-key.json | tr -d '\n'        # Mac   (Linux: base64 -w0 firebase-key.json)
+# paste the result as  FCM_SERVICE_ACCOUNT_JSON=...  in .env.production (or the shell before `npm run api`), then restart the API
+```
+4. **Check:** log in on the phone, accept the permission, trigger something (e.g. a booking). Admin → Settings should show push provider **fcm** (not "mock").
+Privacy option: `PUSH_HIDE_DETAILS=1` shows only "You have a new update" on lock screens (hides names and amounts).
+**Before publishing the iPhone app change the bundle id** — it is still the template default `org.reactjs.native.example.RentalHub` (Xcode → target → General → Bundle Identifier, e.g. `in.yourbrand.rentalhub`). Firebase's iOS app must use the same id. Android's id is `com.rentalhub`; changing it later means a new app listing, so decide now.
+
+---------------------------------------------------------------------
+## PART 8 — What is still not done
+See **PENDING.md** — the full, current list (built / partly built / not built), checked against the CozyHaven design blueprint and the original business plan.

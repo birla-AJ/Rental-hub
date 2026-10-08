@@ -10,6 +10,7 @@ import { createPersistence, COLLECTIONS } from './persist.js';
 import { createProvider, verifySignature, extractInbound } from './messaging.js';
 import { createAi } from './ai.js';
 import { createPayments } from './payments.js';
+import { createPush } from './push.js';
 import { securityHeaders, applyCors, createLimiter, clientIp, logLine, validateEnv } from './hardening.js';
 
 const db = {
@@ -20,7 +21,7 @@ const db = {
     r5: { id: 'r5', propertyId: 'p3', name: 'Room 1', rent: 9000, status: 'OCCUPIED', tenantId: 't3', ownerId: 'o3' },
     r1: { id: 'r1', propertyId: 'p1', name: 'Room 101', rent: 8500, status: 'OCCUPIED', tenantId: 't1', ownerId: 'o1' } },
   tokens: { r1: core.mintRegistrationToken({ propertyId: 'p1', roomId: 'r1', tenantId: 't1', monthlyRent: 8500 }) },
-  checkouts: {}, windows: {}, audit: [], conversations: {}, privateFiles: {}, bookings: {}, kyc: {}, notifications: [], saved: {},
+  checkouts: {}, windows: {}, audit: [], conversations: {}, privateFiles: {}, devices: {}, bookings: {}, kyc: {}, notifications: [], saved: {},
   tenancies: [
     { id: 'ten1', roomId: 'r1', tenantId: 't1', startedAt: '2026-04-02T00:00:00Z' }, { id: 'ten2', roomId: 'r2', tenantId: 't2', startedAt: '2026-06-15T00:00:00Z' }, { id: 'ten3', roomId: 'r5', tenantId: 't3', startedAt: '2026-08-01T00:00:00Z' } ],
   users: [
@@ -70,7 +71,17 @@ const quoteFor = (sub, room, months) => core.quoteBooking({ monthlyRent: room.re
 const addHist = (b, status) => { b.status = status; b.history.push({ status, at: new Date().toISOString() }); };
 const releaseBooking = (b) => { const room = db.rooms[b.roomId]; if (room.status === 'BOOKED') room.status = b.prevRoomStatus ?? 'AVAILABLE'; const t = myTokens(b.tenantId).find((x) => x.reservedBy === b.id); if (t) delete t.reservedBy; };
 let nSeq = 0;
-const notify = (userId, type, title, body) => { if (userId) db.notifications.unshift({ id: 'n' + ++nSeq, userId, type, title, body, at: new Date().toISOString(), read: false }); };
+const notify = (userId, type, title, body) => {
+  if (!userId) return;
+  db.notifications.unshift({ id: 'n' + ++nSeq, userId, type, title, body, at: new Date().toISOString(), read: false });
+  pushToUser(userId, type, title, body);
+};
+/** Fire-and-forget: a push problem must never break the action that caused it. PUSH_HIDE_DETAILS=1 keeps names/amounts off lock screens. */
+function pushToUser(userId, type, title, body) {
+  const devices = Object.values(db.devices).filter((d) => d.userId === userId); if (!devices.length) return;
+  const hide = process.env.PUSH_HIDE_DETAILS === '1', t = hide ? 'RentalHub' : title, b = hide ? 'You have a new update.' : body;
+  for (const d of devices) Promise.resolve().then(() => pusher.send({ token: d.token, title: t, body: b, data: { type } })).then((r) => { if (r?.invalid) delete db.devices[d.id]; }).catch((e) => console.error('[push] failed:', e.message));
+}
 const notifyRole = (r, type, title, body) => db.users.filter((u) => u.roles.includes(r)).forEach((u) => notify(u.id, type, title, body));
 const KYC_IDS = ['Aadhaar', 'PAN', 'Driving licence', 'Voter ID'];
 const kycOf = (uid) => (db.kyc[uid] ??= []);
@@ -104,6 +115,7 @@ const LOG = process.env.LOG_REQUESTS === '1' || PROD;
 const rateLimit = createLimiter({ max: Number(process.env.RATE_LIMIT_PER_MIN ?? 300) });   // per IP per minute, on top of the stricter OTP limits
 const provider = createProvider();
 const pay = createPayments();
+const pusher = createPush();
 let ai;   // created below, after notify() exists
 /** The one place a checkout step takes effect — the app and WhatsApp both come through here. */
 function advance(room, k, { verify = true } = {}) {
@@ -436,6 +448,16 @@ export const server = http.createServer(async (req, res) => {
         return send(res, 200, { inProgress, history });
       }
     }
+    // ---------- Phones that receive push notifications ----------
+    if (a === 'devices' && req.method === 'POST') {
+      const token = String(body.token ?? ''); if (token.length < 20 || token.length > 4096) return send(res, 422, { error: 'Invalid device token' });
+      const id2 = crypto.createHash('sha256').update(token).digest('hex').slice(0, 32);
+      if (id === 'remove') { if (db.devices[id2]?.userId === sub) delete db.devices[id2]; return send(res, 200, { ok: true }); }
+      if (!['android', 'ios'].includes(body.platform)) return send(res, 422, { error: 'Invalid platform' });
+      db.devices[id2] = { id: id2, userId: sub, token, platform: body.platform, at: new Date().toISOString() };      // a phone belongs to whoever logged in last (shared phones)
+      const mine = Object.values(db.devices).filter((d) => d.userId === sub).sort((x, y) => y.at.localeCompare(x.at)); for (const old of mine.slice(5)) delete db.devices[old.id];   // at most 5 phones per person
+      return send(res, 200, { ok: true });
+    }
     // ---------- Staff (admin / agent accounts are provisioned here, never self-registered) ----------
     if (a === 'staff') {
       need(role, ['admin']);
@@ -720,7 +742,7 @@ export const server = http.createServer(async (req, res) => {
       }
       if (id === 'settings' && !scoped) return send(res, 200, {
         rules: { commissionRate: core.COMMISSION_RATE, placementWindowDays: core.PLACEMENT_WINDOW_DAYS, registrationTokenRate: core.REGISTRATION_TOKEN_RATE, cashbackLadder: core.CASHBACK_LADDER },
-        system: { storage: persist.durable ? 'durable' : 'memory only', whatsapp: provider.name, sms: sms.name, payments: pay.name, environment: process.env.NODE_ENV ?? 'development', ownerFoundRoomsCoveredByPlacement: false, repairCoordinationIncluded: false },
+        system: { storage: persist.durable ? 'durable' : 'memory only', whatsapp: provider.name, sms: sms.name, payments: pay.name, push: pusher.name, environment: process.env.NODE_ENV ?? 'development', ownerFoundRoomsCoveredByPlacement: false, repairCoordinationIncluded: false },
       });
       if (id === 'reports' && !scoped) {
         const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0), avg = (xs) => (xs.length ? +(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : null);
@@ -778,6 +800,7 @@ export const _ai = () => ai;
 export const _hasAdmin = hasAdmin;
 export const _provider = provider;
 export const _pay = pay;
+export const _push = pusher;
 if (process.argv[1].endsWith('server.js')) {
   const { errors, warnings } = validateEnv(); for (const w of warnings) console.warn('[config]', w);
   if (!hasAdmin()) { console.error('[config] cannot start: there is no active admin. Set BOOTSTRAP_ADMIN_PHONE (10-digit mobile) for the first start.'); process.exit(1); }
