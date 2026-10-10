@@ -24,7 +24,9 @@ function Login({ onLogin }) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [city, setCity] = useState('Indore');
   const [agreeTerms, setAgreeTerms] = useState(true);
 
@@ -260,28 +262,46 @@ function Login({ onLogin }) {
             <div className="login-field-group">
               <label className="login-label">Password (Min. 6 chars)</label>
               <div className="login-input-wrap">
+                <span className="login-input-icon"><Icon name="lock" size={17} /></span>
                 <input
                   className="login-input"
-                  type="password"
+                  type={showSignupPassword ? 'text' : 'password'}
                   placeholder="Create a secure password"
                   value={signupPassword}
                   onChange={(e) => setSignupPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  className="login-toggle-pw"
+                  onClick={() => setShowSignupPassword(!showSignupPassword)}
+                  aria-label={showSignupPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon name={showSignupPassword ? "eye-off" : "eye"} size={17} />
+                </button>
               </div>
             </div>
 
             <div className="login-field-group">
               <label className="login-label">Confirm Password</label>
               <div className="login-input-wrap">
+                <span className="login-input-icon"><Icon name="lock" size={17} /></span>
                 <input
                   className="login-input"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  className="login-toggle-pw"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={17} />
+                </button>
               </div>
             </div>
 
