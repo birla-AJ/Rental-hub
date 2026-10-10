@@ -1,5 +1,5 @@
-# {$DOMAIN} comes from the environment, e.g. app.rentalhub.in — point its DNS A record at your server first.
-{$DOMAIN} {
+# {$DOMAIN} comes from the environment, e.g. http://51.20.116.181 or app.rentalhub.in
+{$DOMAIN:http://51.20.116.181} {
 	encode gzip
 
 	# API: https://DOMAIN/api/...  (the "/api" prefix is removed before it reaches the API)

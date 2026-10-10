@@ -56,7 +56,13 @@ export function createSmsProvider(env = process.env) {
     if (!env.MSG91_AUTHKEY || !env.MSG91_TEMPLATE_ID) throw new Error('SMS_PROVIDER=msg91 needs MSG91_AUTHKEY and MSG91_TEMPLATE_ID');
     return msg91Provider({ authKey: env.MSG91_AUTHKEY, templateId: env.MSG91_TEMPLATE_ID, otpVar: env.MSG91_OTP_VAR ?? 'OTP' });
   }
-  if (env.NODE_ENV === 'production') throw new Error('Set SMS_PROVIDER (e.g. msg91) — OTP codes cannot be delivered in production without one');
+  if (env.SMS_PROVIDER === 'mock' || env.SMS_PROVIDER === 'none' || env.SMS_PROVIDER === 'disabled') {
+    return mockSmsProvider();
+  }
+  if (env.NODE_ENV === 'production' && env.SMS_PROVIDER) throw new Error(`Unknown SMS_PROVIDER: ${env.SMS_PROVIDER}`);
+  if (env.NODE_ENV === 'production') {
+    return mockSmsProvider(); // Fallback for ID/Password login mode
+  }
   return mockSmsProvider();
 }
 export const sms = createSmsProvider();

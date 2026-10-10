@@ -35,6 +35,8 @@ export default function Icon({ name = 'home', size = 22, color = '#315B43', stro
     location: <><Path {...p} d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><Circle {...p} cx="12" cy="10" r="2.5"/></>,
     party: <><Path {...p} d="m4 20 8-8M6 6l12 12M14 3l1 3M20 9l-3 1M4 12l3 1M12 20l1-3"/><Path {...p} d="m3 3 6 2-4 4z"/></>,
     logout: <><Path {...p} d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><Path {...p} d="m14 8 4 4-4 4M8 12h10"/></>,
+    eye: <><Path {...p} d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><Circle {...p} cx="12" cy="12" r="3"/></>,
+    'eye-off': <><Path {...p} d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><Path {...p} d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><Path {...p} d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><Line {...p} x1="2" y1="2" x2="22" y2="22"/></>,
   };
   return <Svg width={size} height={size} viewBox="0 0 24 24">{items[name] ?? items.home}</Svg>;
 }

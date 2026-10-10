@@ -1,6 +1,140 @@
-node_modules
+
+==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Environment & Secret Credentials (CRITICAL)
+# ------------------------------------------------------------------------------
 .env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+!.env.*.example
+
+# Service Accounts & Firebase Secrets
+service-account.json
+service-account.json
+google-services.json
+GoogleService-Info.plist
+
+# Private keys, Certificates & Android Keystores
+*.pem
+*.key
+*.pkcs12
+*.pfx
+*.p12
+*.crt
+*.cert
+*.keystore
+*.jks
+!**/debug.keystore
+
+# AWS & SSH credentials
+.aws/
+id_rsa*
+id_ed25519*
+
+# ------------------------------------------------------------------------------
+# 2. Dependencies
+# ------------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# 3. Local Data, Databases, Uploads & Docker Volumes
+# ------------------------------------------------------------------------------
 data/
+uploads/
+private/
+backups/
 *.db
 *.db-wal
 *.db-shm
+*.sqlite
+*.sqlite3
+*.sql
+*.sql.gz
+pgdata/
+caddy_data/
+caddy_config/
+
+# ------------------------------------------------------------------------------
+# 4. Build Outputs & Bundles
+# ------------------------------------------------------------------------------
+dist/
+build/
+out/
+.cache/
+.parcel-cache/
+.temp/
+.tmp/
+*.apk
+*.aab
+*.ipa
+
+# ------------------------------------------------------------------------------
+# 5. Mobile (Android & iOS Native Builds)
+# ------------------------------------------------------------------------------
+# Android
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/android/local.properties
+.gradle/
+local.properties
+
+# iOS
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/ios/DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Metro bundler cache
+.metro/
+metro-cache/
+
+# ------------------------------------------------------------------------------
+# 6. Logs & Process Files
+# ------------------------------------------------------------------------------
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# ------------------------------------------------------------------------------
+# 7. IDE, Editor & OS Files
+# ------------------------------------------------------------------------------
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+#imporatant
+rent_payment_rzp-test-key.csv
+rent_push_google-services.json
+rent_pushservice-account.json.json
+rentalhub-ec2-key.pem
+
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~

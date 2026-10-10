@@ -41,7 +41,7 @@ export function validateEnv(env = process.env) {
   if (env.NODE_ENV !== 'production') return { errors, warnings: ['NODE_ENV is not "production" — fine for development, not for a live server.'] };
   if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) errors.push('JWT_SECRET must be set to a random string of at least 32 characters.');
   if (!env.DATABASE_URL && !env.SQLITE_PATH) errors.push('Set DATABASE_URL (PostgreSQL) or SQLITE_PATH — production needs durable storage.');
-  if (!env.SMS_PROVIDER) errors.push('Set SMS_PROVIDER (e.g. msg91) — OTP codes cannot be delivered otherwise.');
+  if (!env.SMS_PROVIDER || env.SMS_PROVIDER === 'mock' || env.SMS_PROVIDER === 'none') warnings.push('SMS_PROVIDER is not configured with MSG91 — SMS OTPs will be simulated in memory. ID/Password login is active.');
   if (env.SMS_PROVIDER === 'msg91' && (!env.MSG91_AUTHKEY || !env.MSG91_TEMPLATE_ID)) errors.push('MSG91_AUTHKEY and MSG91_TEMPLATE_ID are required for SMS_PROVIDER=msg91.');
   if (env.PAYMENT_PROVIDER !== 'razorpay') errors.push('Set PAYMENT_PROVIDER=razorpay — bookings cannot be paid for safely without a payment gateway.');
   else for (const k of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET']) if (!env[k]) errors.push(`${k} is required for PAYMENT_PROVIDER=razorpay.`);
@@ -50,7 +50,6 @@ export function validateEnv(env = process.env) {
   if (env.WHATSAPP_TOKEN && !env.WHATSAPP_VERIFY_TOKEN) errors.push('WHATSAPP_VERIFY_TOKEN is required for the WhatsApp webhook handshake.');
   if (env.SEED_DEMO === '1') warnings.push('SEED_DEMO=1 puts fake demo users and properties on a live server. Remove it.');
   if (!env.BOOTSTRAP_ADMIN_PHONE) warnings.push('BOOTSTRAP_ADMIN_PHONE is not set: fine if an admin already exists, but a brand-new database will refuse to start without it.');
-  if (!env.FCM_SERVICE_ACCOUNT_JSON) warnings.push('FCM_SERVICE_ACCOUNT_JSON is not set: push notifications are recorded but not sent (notifications still appear inside the app).');
   if (!env.WHATSAPP_TOKEN) warnings.push('WhatsApp is not configured: the AI assistant will record messages but send none.');
   if (!env.CORS_ORIGINS) warnings.push('CORS_ORIGINS is not set: browsers on other domains (e.g. a separately hosted admin site) will be blocked.');
   if (env.TRUST_PROXY !== '1') warnings.push('TRUST_PROXY is not 1: behind a reverse proxy every user will look like the same IP and share rate limits.');
