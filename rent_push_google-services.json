@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "621291331163",
+    "project_id": "rentalhub-38a17",
+    "storage_bucket": "rentalhub-38a17.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:621291331163:android:40ae0002edc76bfb51a97e",
+        "android_client_info": {
+          "package_name": "com.rentalhub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDO11dN84HvfC5hzCbe3SCM5Z8wNCfewYs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

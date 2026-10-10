@@ -1,5 +1,7 @@
-
-==============================================================================
+# ==============================================================================
+# RentalHub Production-Grade .gitignore
+# Prevents accidental commits of secrets, keys, builds, and local environment files
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # 1. Environment & Secret Credentials (CRITICAL)
@@ -14,7 +16,7 @@
 !.env.*.example
 
 # Service Accounts & Firebase Secrets
-service-account.json
+*service-account*.json
 service-account.json
 google-services.json
 GoogleService-Info.plist
@@ -118,12 +120,6 @@ logs/
 ._*
 .Spotlight-V100
 .Trashes
-
-#imporatant
-rent_payment_rzp-test-key.csv
-rent_push_google-services.json
-rent_pushservice-account.json.json
-rentalhub-ec2-key.pem
 
 # Windows
 Thumbs.db

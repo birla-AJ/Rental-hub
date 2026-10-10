@@ -40,10 +40,12 @@ export const PAGES = {
   qr: T('QR tags', 'Room tags assigned by agents.', '/admin/qr', { chips: ['status'], empty: 'No QR tags yet.' }),
   'ai-logs': T('AI verification logs', 'Tenant ↔ owner checkout cross-verification trail.', '/admin/ai-logs', { empty: 'No checkouts yet.' }),
   audit: T('Audit logs', 'Who changed what, and when.', '/admin/audit', { empty: 'No activity yet.' }),
+  browse: T('Browse Homes', 'Verified homes and rooms available for rent in Indore.', '/listings', { empty: 'No homes listed yet. Check back soon or register a home.' }),
 };
 export const NAV = {
   admin: [['dashboard', 'Dashboard', 'dashboard'], ['properties', 'Properties', 'building'], ['rooms', 'Rooms', 'door'], ['users', 'Users', 'users'], ['staff', 'Staff', 'users'], ['bookings', 'Bookings', 'calendar'], ['verification', 'Verification', 'check'], ['kyc', 'KYC', 'id'], ['vacancy', 'Vacancy', 'clock'],
     ['placement', 'Placement', 'users'], ['cashback', 'Cashback', 'wallet'], ['commission', 'Commission', 'briefcase'], ['payments', 'Payments', 'card'], ['qr', 'QR tags', 'tag'], ['review', 'Checkout review', 'search'], ['whatsapp', 'WhatsApp', 'message'], ['ai-logs', 'AI logs', 'sparkles'], ['reports', 'Reports', 'chart'], ['notifications', 'Notifications', 'bell'], ['audit', 'Audit logs', 'file'], ['settings', 'Settings', 'settings']],
   agent: [['dashboard', 'Dashboard', 'dashboard'], ['properties', 'Assigned properties', 'building'], ['verification', 'Verification', 'check'], ['qr', 'QR tags', 'tag']],
   owner: [['dashboard', 'Dashboard', 'dashboard'], ['rooms', 'Rooms', 'door'], ['vacancy', 'Vacancy', 'clock'], ['commission', 'Commission', 'briefcase']],
+  tenant: [['browse', 'Find Homes', 'building'], ['bookings', 'My Bookings', 'calendar'], ['notifications', 'Notifications', 'bell']],
 };
