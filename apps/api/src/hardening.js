@@ -11,12 +11,16 @@ export function securityHeaders(res, prod) {
 
 /** Dev with no CORS_ORIGINS: allow all. Otherwise only the listed origins (production with none listed = same-origin only). */
 export function applyCors(req, res, env = process.env) {
-  const list = (env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean), origin = req.headers.origin;
-  const allowAll = !list.length && env.NODE_ENV !== 'production';
-  if (!origin || !(allowAll || list.includes(origin))) return false;
+  const list = (env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const origin = req.headers.origin;
+  const allowAll = list.includes('*') || (!list.length && env.NODE_ENV !== 'production');
+  if (!origin) return true;
+  if (!(allowAll || list.includes(origin))) return false;
   res.setHeader('access-control-allow-origin', allowAll ? '*' : origin);
   if (!allowAll) res.setHeader('vary', 'Origin');
-  res.setHeader('access-control-allow-headers', 'content-type,authorization'); res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS'); res.setHeader('access-control-max-age', '600');
+  res.setHeader('access-control-allow-headers', 'content-type,authorization');
+  res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
+  res.setHeader('access-control-max-age', '600');
   return true;
 }
 

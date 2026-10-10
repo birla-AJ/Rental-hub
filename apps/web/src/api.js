@@ -1,12 +1,36 @@
 import { useEffect, useState, useCallback } from 'react';
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const BASE = import.meta.env.VITE_API_URL ?? 'http://51.20.116.181:4000';
 let TOKEN = null;                       // memory only (not localStorage) so XSS can't read a stored token; refresh = log in again
 export const setToken = (t) => { TOKEN = t; };
 export async function api(path, opts = {}) {
-  const res = await fetch(BASE + path, { method: opts.method ?? 'GET', headers: { 'content-type': 'application/json', ...(TOKEN ? { authorization: 'Bearer ' + TOKEN } : {}) }, body: opts.body ? JSON.stringify(opts.body) : undefined });
-  const json = await res.json();
-  if (res.status === 401) { setToken(null); window.dispatchEvent(new Event('rh-logout')); }
-  if (!res.ok) throw new Error(json.error ?? 'Request failed');
+  let res;
+  try {
+    res = await fetch(BASE + path, {
+      method: opts.method ?? 'GET',
+      headers: {
+        'content-type': 'application/json',
+        ...(TOKEN ? { authorization: 'Bearer ' + TOKEN } : {})
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+  } catch (netErr) {
+    throw new Error('Could not connect to the backend server (' + BASE + '). Please ensure the server is running and accessible.');
+  }
+
+  let json = {};
+  try {
+    json = await res.json();
+  } catch {
+    json = { error: res.statusText || 'Server returned an invalid response' };
+  }
+
+  // Only dispatch logout if a previously authenticated request fails with 401, not during login/signup attempt
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    setToken(null);
+    window.dispatchEvent(new Event('rh-logout'));
+  }
+
+  if (!res.ok) throw new Error(json.error ?? 'Request failed with status ' + res.status);
   return json;
 }
 export function useApi(path) {

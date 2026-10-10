@@ -4,10 +4,34 @@ let TOKEN = null;   // in memory; src/session.js keeps a copy in the Keychain/Ke
 let onAuthLost = null;
 export const setToken = (t) => { TOKEN = t; };
 export const setAuthLostHandler = (fn) => { onAuthLost = fn; };   // called when the server says the login is no longer valid
-export async function api(path, { method = 'GET', body } = {}) {   // `role` option is gone: the server reads the role from the signed token
-  const res = await fetch(BASE + path, { method, headers: { 'content-type': 'application/json', ...(TOKEN ? { authorization: 'Bearer ' + TOKEN } : {}) }, body: body ? JSON.stringify(body) : undefined });
-  const json = await res.json();
-  if (res.status === 401) { setToken(null); onAuthLost?.(); }
+export async function api(path, { method = 'GET', body } = {}) {
+  let res;
+  try {
+    res = await fetch(BASE + path, {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        ...(TOKEN ? { authorization: 'Bearer ' + TOKEN } : {})
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (netErr) {
+    throw new Error('Network request failed');
+  }
+
+  let json = {};
+  try {
+    json = await res.json();
+  } catch {
+    json = { error: res.statusText || 'Server error' };
+  }
+
+  // Only trigger logout if an authenticated session expired, not on invalid credentials during login/signup
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    setToken(null);
+    onAuthLost?.();
+  }
+
   if (!res.ok) throw new Error(json.error ?? 'Something went wrong');
   return json;
 }

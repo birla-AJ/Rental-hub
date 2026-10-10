@@ -47,7 +47,9 @@ export function Login({ navigation }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(true);
 
   // States
@@ -66,7 +68,7 @@ export function Login({ navigation }) {
   }, [mode]);
 
   const handleLogin = async () => {
-    if (!loginId.trim() || !password) return;
+    if (busy || !loginId.trim() || !password) return;
     setBusy(true);
     setApiErr(null);
     try {
@@ -75,16 +77,23 @@ export function Login({ navigation }) {
         body: { loginId: loginId.trim(), password }
       });
       await signIn(r);
-      navigation.navigate(r.user.roles.length === 1 ? 'Main' : 'Role');
-      if (r.user.roles.length === 1 && r.user.role === 'owner') navigation.navigate('Consent');
+      const roles = r.user?.roles ?? [r.user?.role];
+      if (roles.length > 1) {
+        navigation.navigate('Role');
+      } else if (r.user?.role === 'owner') {
+        navigation.navigate('Consent');
+      } else {
+        navigation.navigate('Main');
+      }
     } catch (e) {
-      setApiErr(e.message === 'Network request failed' ? 'No connection. Check your server connection.' : e.message);
+      setApiErr(e.message === 'Network request failed' ? 'Could not reach server. Please check your internet connection.' : e.message);
     } finally {
       setBusy(false);
     }
   };
 
   const handleSignup = async () => {
+    if (busy) return;
     if (!name.trim()) return setApiErr('Please enter your full name');
     if (!/^[6-9]\d{9}$/.test(phone.trim())) return setApiErr('Please enter a valid 10-digit Indian mobile number');
     if (email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setApiErr('Please enter a valid email address');
@@ -100,15 +109,23 @@ export function Login({ navigation }) {
         body: {
           name: name.trim(),
           phone: phone.trim(),
-          email: email.trim() || null,
+          email: email.trim() || undefined,
           password,
           role,
+          city: 'Indore',
         }
       });
       await signIn(r);
-      navigation.navigate('Main');
+      const roles = r.user?.roles ?? [r.user?.role];
+      if (roles.length > 1) {
+        navigation.navigate('Role');
+      } else if (r.user?.role === 'owner') {
+        navigation.navigate('Consent');
+      } else {
+        navigation.navigate('Main');
+      }
     } catch (e) {
-      setApiErr(e.message === 'Network request failed' ? 'Could not reach server. Please check connection.' : e.message);
+      setApiErr(e.message === 'Network request failed' ? 'Could not reach server. Please check your internet connection.' : e.message);
     } finally {
       setBusy(false);
     }
@@ -209,12 +226,12 @@ export function Login({ navigation }) {
               <Button
                 title="Sign In"
                 loading={busy}
-                disabled={!loginId.trim() || !password}
+                disabled={busy || !loginId.trim() || !password}
                 onPress={handleLogin}
                 style={{
                   height: 50,
                   borderRadius: 14,
-                  backgroundColor: (!loginId.trim() || !password) ? t.disabled : '#1E4530',
+                  backgroundColor: (busy || !loginId.trim() || !password) ? t.disabled : '#1E4530',
                 }}
               />
             </View>
@@ -300,27 +317,41 @@ export function Login({ navigation }) {
               {/* Password */}
               <View style={{ marginBottom: 12 }}>
                 <Text style={{ color: t.textPrimary, fontWeight: '700', fontSize: textSize(13), marginBottom: 5 }}>Create Password</Text>
-                <TextInput
-                  style={{ height: 48, borderRadius: 12, borderWidth: 1.2, borderColor: t.border, backgroundColor: t.surface, paddingHorizontal: 12, fontSize: textSize(14), color: t.textPrimary }}
-                  placeholder="Minimum 6 characters"
-                  placeholderTextColor={t.disabled}
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', height: 48, borderRadius: 12, borderWidth: 1.2, borderColor: t.border, backgroundColor: t.surface, paddingHorizontal: 12 }}>
+                  <Icon name="lock" size={18} color={t.textSecondary} />
+                  <TextInput
+                    style={{ flex: 1, fontSize: textSize(14), color: t.textPrimary, marginLeft: 10 }}
+                    placeholder="Minimum 6 characters"
+                    placeholderTextColor={t.disabled}
+                    secureTextEntry={!showSignupPassword}
+                    autoCapitalize="none"
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <Pressable onPress={() => setShowSignupPassword(!showSignupPassword)} hitSlop={12}>
+                    <Icon name={showSignupPassword ? "eye-off" : "eye"} size={18} color={t.textSecondary} />
+                  </Pressable>
+                </View>
               </View>
 
               {/* Confirm Password */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ color: t.textPrimary, fontWeight: '700', fontSize: textSize(13), marginBottom: 5 }}>Confirm Password</Text>
-                <TextInput
-                  style={{ height: 48, borderRadius: 12, borderWidth: 1.2, borderColor: t.border, backgroundColor: t.surface, paddingHorizontal: 12, fontSize: textSize(14), color: t.textPrimary }}
-                  placeholder="Re-enter password"
-                  placeholderTextColor={t.disabled}
-                  secureTextEntry
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', height: 48, borderRadius: 12, borderWidth: 1.2, borderColor: t.border, backgroundColor: t.surface, paddingHorizontal: 12 }}>
+                  <Icon name="lock" size={18} color={t.textSecondary} />
+                  <TextInput
+                    style={{ flex: 1, fontSize: textSize(14), color: t.textPrimary, marginLeft: 10 }}
+                    placeholder="Re-enter password"
+                    placeholderTextColor={t.disabled}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                  />
+                  <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={12}>
+                    <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={18} color={t.textSecondary} />
+                  </Pressable>
+                </View>
               </View>
 
               {/* Terms Checkbox */}
@@ -334,12 +365,12 @@ export function Login({ navigation }) {
               <Button
                 title={`Register as ${role === 'tenant' ? 'Tenant' : 'Property Owner'}`}
                 loading={busy}
-                disabled={!name.trim() || !phone.trim() || !password || !confirmPassword}
+                disabled={busy || !name.trim() || !phone.trim() || !password || !confirmPassword || !agreeTerms}
                 onPress={handleSignup}
                 style={{
                   height: 50,
                   borderRadius: 14,
-                  backgroundColor: (!name.trim() || !phone.trim() || !password) ? t.disabled : '#1E4530',
+                  backgroundColor: (busy || !name.trim() || !phone.trim() || !password || !confirmPassword || !agreeTerms) ? t.disabled : '#1E4530',
                 }}
               />
             </View>
@@ -355,3 +386,112 @@ export function Login({ navigation }) {
     </View>
   );
 }
+
+export function Otp({ navigation }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: t.background, padding: 24, justifyContent: 'center', alignItems: 'center' }}>
+      <BrandLogo size={48} />
+      <Text style={{ fontSize: textSize(20), fontWeight: '900', color: t.textPrimary, marginTop: 16 }}>
+        Password Authentication Active
+      </Text>
+      <Text style={{ fontSize: textSize(13), color: t.textSecondary, textAlign: 'center', marginTop: 8, maxWidth: 280 }}>
+        RentalHub now uses secure password login instead of SMS OTP.
+      </Text>
+      <Button
+        title="Go to Sign In"
+        onPress={() => navigation.navigate('Login')}
+        style={{ marginTop: 24, minWidth: 200, backgroundColor: '#1E4530' }}
+      />
+    </View>
+  );
+}
+
+export function ChooseRole({ navigation }) {
+  const { roles, signIn } = useSession();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const select = async (targetRole) => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await api('/auth/switch', {
+        method: 'POST',
+        body: { role: targetRole }
+      });
+      await signIn(r);
+      if (targetRole === 'owner') {
+        navigation.navigate('Consent');
+      } else {
+        navigation.navigate('Main');
+      }
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const userRoles = Array.isArray(roles) && roles.length ? roles : ['tenant', 'owner'];
+
+  return (
+    <View style={{ flex: 1, backgroundColor: t.background, padding: 24, justifyContent: 'center' }}>
+      <View style={{ alignItems: 'center', marginBottom: 28 }}>
+        <BrandLogo size={44} />
+        <Text style={{ fontSize: textSize(22), fontWeight: '900', color: t.textPrimary, marginTop: 14 }}>
+          Select Active Role
+        </Text>
+        <Text style={{ fontSize: textSize(13), color: t.textSecondary, textAlign: 'center', marginTop: 4 }}>
+          Your account has access to multiple roles. Choose which one to open:
+        </Text>
+      </View>
+
+      {err ? (
+        <View style={{ backgroundColor: '#FFF0EF', borderWidth: 1, borderColor: '#FFCCC7', padding: 12, borderRadius: 12, marginBottom: 16 }}>
+          <Text style={{ color: t.error, fontSize: textSize(12), fontWeight: '600' }}>{err}</Text>
+        </View>
+      ) : null}
+
+      {userRoles.map((r) => {
+        const isOwner = r === 'owner';
+        const isAgent = r === 'agent';
+        const title = isOwner ? 'Property Owner' : isAgent ? 'Field Agent' : 'Tenant';
+        const desc = isOwner ? 'Manage your rental properties & rooms' : isAgent ? 'Verification visits & property tasks' : 'Browse listings & view bookings';
+        const iconName = isOwner ? 'home' : isAgent ? 'check' : 'user';
+
+        return (
+          <Pressable
+            key={r}
+            disabled={busy}
+            onPress={() => select(r)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 16,
+              borderRadius: 16,
+              backgroundColor: '#fff',
+              borderWidth: 1.5,
+              borderColor: t.border,
+              marginBottom: 12,
+              shadowColor: '#000',
+              shadowOpacity: 0.04,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#F0F6F2', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+              <Icon name={iconName} size={22} color="#1E4530" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: textSize(15), fontWeight: '800', color: t.textPrimary }}>{title}</Text>
+              <Text style={{ fontSize: textSize(12), color: t.textSecondary, marginTop: 2 }}>{desc}</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={t.textSecondary} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
